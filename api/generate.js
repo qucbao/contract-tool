@@ -1,29 +1,50 @@
 import fs from "fs";
+import path from "path";
 import PizZip from "pizzip";
 import Docxtemplater from "docxtemplater";
 
 export default async function handler(req, res) {
-    if (req.method !== "POST") return res.status(405).end();
+    try {
+        if (req.method !== "POST") {
+            return res.status(405).json({ error: "Method not allowed" });
+        }
 
-    const data = req.body;
-    const content = fs.readFileSync("template.docx", "binary");
+        const templatePath = path.join(process.cwd(), "template.docx");
 
-    const zip = new PizZip(content);
-    const doc = new Docxtemplater(zip);
+        if (!fs.existsSync(templatePath)) {
+            return res.status(500).json({
+                error: "Template not found",
+                path: templatePath
+            });
+        }
 
-    doc.render({
-        NGAY: data.ngay,
-        BEN_A: data.benA,
-        BEN_B: data.benB,
-        BEN_C: data.benC,
-        TEN_HANG: data.hang,
-        SO_LUONG: data.soluong,
-        GIA: data.gia
-    });
+        const content = fs.readFileSync(templatePath, "binary");
 
-    const buf = doc.getZip().generate({ type: "nodebuffer" });
+        const zip = new PizZip(content);
+        const doc = new Docxtemplater(zip, {
+            paragraphLoop: true,
+            linebreaks: true
+        });
 
-    res.setHeader("Content-Disposition", "attachment; filename=hopdong.docx");
-    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
-    res.send(buf);
+        doc.render(req.body);
+
+        const buf = doc.getZip().generate({ type: "nodebuffer" });
+
+        res.setHeader(
+            "Content-Type",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        );
+        res.setHeader(
+            "Content-Disposition",
+            "attachment; filename=hopdong.docx"
+        );
+
+        return res.status(200).send(buf);
+    } catch (err) {
+        console.error("DOCX ERROR:", err);
+        return res.status(500).json({
+            error: "DOCX_GENERATE_FAILED",
+            message: err.message
+        });
+    }
 }
