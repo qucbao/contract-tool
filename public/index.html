@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+
+<body style="font-size:22px">
+    <form id="f">
+        Ngày <input name="ngay"><br><br>
+        Bên A <input name="benA"><br><br>
+        Bên B <input name="benB"><br><br>
+        Bên C <input name="benC"><br><br>
+        Hàng <input name="hang"><br><br>
+        Số lượng <input name="soluong"><br><br>
+        Giá <input name="gia"><br><br>
+
+        <button type="submit">TẠO HỢP ĐỒNG</button>
+    </form>
+
+    <script>
+        document.getElementById("f").onsubmit = async e => {
+            e.preventDefault();
+            const data = Object.fromEntries(new FormData(e.target));
+
+            const res = await fetch("/api/generate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+            });
+
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            window.open(url);
+        };
+    </script>
+</body>
+
+</html>
